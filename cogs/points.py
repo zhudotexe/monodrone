@@ -1,0 +1,164 @@
+import asyncio
+import datetime
+
+import discord
+from discord.ext import commands
+
+import constants
+from utils import get_user
+
+
+class Infraction:
+    def __init__(self, points: int, reason: str, timestamp: datetime.datetime, mod_id: int):
+        self.points = points
+        self.reason = reason
+        self.timestamp = timestamp
+        self.mod_id = mod_id
+
+    @classmethod
+    def new(cls, points, reason, mod_id):
+        return cls(points, reason, datetime.datetime.now(), mod_id)
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(d['points'], d['reason'], datetime.datetime.fromtimestamp(d['timestamp']), d['mod_id'])
+
+    def to_dict(self):
+        return {'points': self.points, 'reason': self.reason, 'timestamp': self.timestamp.timestamp(),
+                'mod_id': self.mod_id}
+
+
+def get_infractions_for(bot, user):
+    return [Infraction.from_dict(i) for i in bot.db.jget(f"{user.id}-points", [])]
+
+
+def tag_active(infs):
+    """Given a list of infractions, returns a list of tuples (Infraction, active)."""
+    sorted_infs = sorted(infs, key=lambda inf: inf.timestamp)
+    last_unexpired = datetime.datetime.now()
+
+    out = []
+    for inf in reversed(sorted_infs):  # latest first
+        if inf.timestamp + datetime.timedelta(seconds=constants.POINTS_EXPIRY_TIME) > last_unexpired:
+            out.insert(0, (inf, True))
+            last_unexpired = inf.timestamp
+        else:
+            out.insert(0, (inf, False))
+
+    return out
+
+
+def recommended_action_for(points, user):
+    if points < 10:  # 0-10
+        return "No action."
+    elif points < 20:  # 10-20
+        return f"1 hour mute. Dyno command: `?mute {user.id} 1h Exceeded 10 points`"
+    elif points < 30:  # 20-30
+        return f"24 hour mute. Dyno command: `?mute {user.id} 24h Exceeded 20 points`"
+    elif points < 40:  # 30-40
+        return f"3 day mute. Dyno command: `?mute {user.id} 3d Exceeded 30 points`"
+    elif points < 50:  # 40-50
+        return f"7 day mute. Dyno command: `?mute {user.id} 7d Exceeded 40 points`"
+    else:  # 50+
+        return f"Permanent ban. Dyno command: `?ban {user.id} Exceeded 50 points`"
+
+
+def get_points(infractions):
+    """Gets the total number of active points, their expiry, and lifetime points from a tagged list of infractions."""
+    active = sum(inf.points for inf, active in infractions if active)
+    expiry = infractions[-1][0].timestamp + datetime.timedelta(seconds=constants.POINTS_EXPIRY_TIME)
+    lifetime_points = sum(inf.points for inf, _ in infractions)
+    return active, expiry, lifetime_points
+
+
+# data scheme:
+# <ID>-points.json = list of Infraction
+
+class Points(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if not self.bot.is_ready():
+            return
+        if constants.MOD_ROLE_ID not in set(r.id for r in message.author.roles):
+            return
+        if not message.content.startswith('?warn '):
+            return
+        await asyncio.sleep(0.5)  # ensure Dyno can respond first
+        await message.channel.send(
+            f"Was that a warning? Make sure to log the points with `.points add @user # REASON`!\n"
+            f"(for example, `.points add @zhu.exe#4211 5 spamming and stuff`)")
+
+    @commands.group(invoke_without_command=True)
+    async def points(self, ctx, member):
+        """Lists the active points for a user."""
+        if constants.MOD_ROLE_ID not in set(r.id for r in ctx.author.roles):
+            return
+
+        try:
+            user = await get_user(ctx, member)
+        except:
+            return await ctx.send(f"User {member} not found. Try using the ID?")
+
+        user_infractions = get_infractions_for(self.bot, user)
+
+        embed = discord.Embed(title=f"Points for {user}", color=0xF8333C)
+        if not user_infractions:
+            embed.description = "This user has no points. Hooray!"
+        else:
+            infs = []
+            infractions = tag_active(user_infractions)
+
+            for infraction, active in infractions:
+                inf_desc = f"{infraction.points} - {infraction.reason} " \
+                           f"(<@{infraction.mod_id}>, {infraction.timestamp})"
+                if not active:
+                    inf_desc = f"~~{inf_desc}~~"
+                infs.append(inf_desc)
+            infs = '\n'.join(infs)
+
+            active_points, expiry, lifetime_points = get_points(infractions)
+            if active_points:
+                embed.description = f"{infs}\n\n{user} has {active_points} active points expiring at {expiry}, " \
+                                    f"and {lifetime_points} lifetime points."
+                embed.add_field(name="Recommended Action", value=recommended_action_for(active_points, user),
+                                inline=False)
+            else:
+                embed.description = f"{infs}\n\n{user} has no active points, and {lifetime_points} lifetime points."
+
+        await ctx.send(embed=embed)
+
+    @points.command(name='add')
+    async def points_add(self, ctx, member, num: int, *, reason):
+        if constants.MOD_ROLE_ID not in set(r.id for r in ctx.author.roles):
+            return
+
+        try:
+            user = await get_user(ctx, member)
+        except:
+            return await ctx.send(f"User {member} not found. Try using the ID?")
+
+        user_infractions = get_infractions_for(self.bot, user)
+        new_infraction = Infraction.new(num, reason, ctx.author.id)
+        user_infractions.append(new_infraction)
+
+        self.bot.db.jset(f"{user.id}-points", [i.to_dict() for i in user_infractions])
+
+        infractions = tag_active(user_infractions)
+
+        embed = discord.Embed(title=f"Points Added for {user}", color=0xFCAB10)
+        embed.description = f"Added {new_infraction.points} points to {user} for {new_infraction.reason}."
+        active_points, expiry, lifetime_points = get_points(infractions)
+
+        embed.add_field(name="Points", inline=False,
+                        value=f"{user} has {active_points} active points expiring at {expiry}, "
+                              f"and {lifetime_points} lifetime points.")
+        embed.add_field(name="Recommended Action", value=recommended_action_for(active_points, user), inline=False)
+
+        await ctx.send(embed=embed)
+
+
+def setup(bot):
+    bot.add_cog(Points(bot))
