@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 import constants
-from utils import get_user
+from utils import confirm, get_user
 
 
 class Infraction:
@@ -111,8 +111,8 @@ class Points(commands.Cog):
             infs = []
             infractions = tag_active(user_infractions)
 
-            for infraction, active in infractions:
-                inf_desc = f"{infraction.points} - {infraction.reason} " \
+            for (i, (infraction, active)) in enumerate(infractions):
+                inf_desc = f"`[{i}]` {infraction.points} points - {infraction.reason} " \
                            f"(<@{infraction.mod_id}>, {infraction.timestamp})"
                 if not active:
                     inf_desc = f"~~{inf_desc}~~"
@@ -150,6 +150,44 @@ class Points(commands.Cog):
 
         embed = discord.Embed(title=f"Points Added for {user}", color=0xFCAB10)
         embed.description = f"Added {new_infraction.points} points to {user} for {new_infraction.reason}."
+        active_points, expiry, lifetime_points = get_points(infractions)
+
+        embed.add_field(name="Points", inline=False,
+                        value=f"{user} has {active_points} active points expiring at {expiry}, "
+                              f"and {lifetime_points} lifetime points.")
+        embed.add_field(name="Recommended Action", value=recommended_action_for(active_points, user), inline=False)
+
+        await ctx.send(embed=embed)
+
+    @points.command(name='remove')
+    async def points_remove(self, ctx, member, index: int):
+        if constants.MOD_ROLE_ID not in set(r.id for r in ctx.author.roles):
+            return
+
+        try:
+            user = await get_user(ctx, member)
+        except:
+            return await ctx.send(f"User {member} not found. Try using the ID?")
+
+        user_infractions = get_infractions_for(self.bot, user)
+        infractions = tag_active(user_infractions)
+        if index < 0 or index >= len(infractions):
+            return await ctx.send("Invalid index. Use `.points @user` to view infraction indices.")
+        removed, active = infractions[index]
+        del infractions[index]
+
+        confirmed = await confirm(
+            ctx,
+            f"Are you sure you want to remove the {removed.points} point infraction for {removed.reason} "
+            f"from {user}? (yes/no)")
+
+        if not confirmed:
+            return await ctx.send("Confirmation aborted or timed out.")
+
+        self.bot.db.jset(f"{user.id}-points", [i.to_dict() for i, _ in infractions])
+
+        embed = discord.Embed(title=f"Infraction Removed for {user}", color=0x6BBF59)
+        embed.description = f"Removed {removed.points} points from {user} for {removed.reason}."
         active_points, expiry, lifetime_points = get_points(infractions)
 
         embed.add_field(name="Points", inline=False,
