@@ -6,6 +6,11 @@ from discord.ext import commands, tasks
 
 import constants
 
+NO_DELETE_ROLES = (
+    516369428615528459,  # DDB Staff
+    516370028053004306  # Moderator
+)
+
 
 # data schema:
 # autodelete.json: dict int->int channel->days
@@ -22,6 +27,10 @@ class AutoDelete(commands.Cog):
     # ==== tasks ====
     @tasks.loop(hours=1)
     async def deleter(self):
+        def role_delete_check(msg):
+            # don't delete messages by anyone with any of these roles
+            return not set(r.id for r in msg.author.roles).intersection(NO_DELETE_ROLES)
+
         await self.bot.wait_until_ready()
         log_channel = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
         for channel_id, days in self.autodelete_channels.items():
@@ -35,6 +44,7 @@ class AutoDelete(commands.Cog):
             try:
                 delete_log = io.StringIO()
                 deleted = await channel.purge(limit=None,
+                                              check=role_delete_check,
                                               before=datetime.datetime.utcnow() - datetime.timedelta(days=days))
                 for message in deleted:
                     delete_log.write(f"[{message.created_at.isoformat()}] {message.author} ({message.author.id})\n"
