@@ -8,7 +8,7 @@ import constants
 
 NO_DELETE_ROLES = (
     516369428615528459,  # DDB Staff
-    516370028053004306  # Moderator
+    # 516370028053004306  # Moderator
 )
 
 
