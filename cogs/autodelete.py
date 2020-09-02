@@ -52,8 +52,9 @@ class AutoDelete(commands.Cog):
                 if not deleted:
                     continue
                 delete_log.seek(0)
+                date = datetime.date.today()
                 await log_channel.send(f"Deleted {len(deleted)} messages from {channel.mention}.",
-                                       file=discord.File(delete_log, filename=f"{channel.name}-deleted.log"))
+                                       file=discord.File(delete_log, filename=f"{channel.name}-{date}.log"))
             except discord.HTTPException as e:
                 print(e)
                 await log_channel.send(f"Unable to delete messages from {channel.mention}: {e}")
