@@ -25,10 +25,10 @@ class AutoDelete(commands.Cog):
         self.deleter.cancel()
 
     # ==== tasks ====
-    @tasks.loop(hours=1)
+    @tasks.loop(hours=24)
     async def deleter(self):
         def role_delete_check(msg):
-            # don't delete messages by anyone with any of these roles
+            # don't delete messages by anyone with any of these roles, or pinned messages
             return not (set(r.id for r in msg.author.roles).intersection(NO_DELETE_ROLES) or msg.pinned)
 
         await self.bot.wait_until_ready()
