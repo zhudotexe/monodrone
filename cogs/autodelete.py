@@ -29,7 +29,9 @@ class AutoDelete(commands.Cog):
     async def deleter(self):
         def role_delete_check(msg):
             # don't delete messages by anyone with any of these roles, or pinned messages
-            return not (set(r.id for r in msg.author.roles).intersection(NO_DELETE_ROLES) or msg.pinned)
+            return not (msg.pinned
+                        or (isinstance(msg.author, discord.Member)
+                            and set(r.id for r in msg.author.roles).intersection(NO_DELETE_ROLES)))
 
         await self.bot.wait_until_ready()
         log_channel = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
