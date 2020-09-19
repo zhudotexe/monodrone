@@ -65,6 +65,8 @@ def recommended_action_for(points, user):
 
 def get_points(infractions):
     """Gets the total number of active points, their expiry, and lifetime points from a tagged list of infractions."""
+    if not infractions:
+        return 0, datetime.datetime.now(), 0
     active = sum(inf.points for inf, active in infractions if active)
     expiry = infractions[-1][0].timestamp + datetime.timedelta(seconds=constants.POINTS_EXPIRY_TIME)
     lifetime_points = sum(inf.points for inf, _ in infractions)
