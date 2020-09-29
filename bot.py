@@ -1,5 +1,6 @@
 import os
 
+import discord
 from discord.ext import commands
 from discord.ext.commands import Bot
 
@@ -15,7 +16,9 @@ class Monodrone(Bot):
         self.db = JSONDB()
 
 
-bot = Monodrone('.')
+intents = discord.Intents.all()
+
+bot = Monodrone('.', intents=intents)
 
 
 # === listeners ===
