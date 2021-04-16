@@ -17,8 +17,11 @@ class Watchlist(commands.Cog):
         if member.id not in self.the_list:
             return
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
-        embed = discord.Embed(title="Member Joined", description=f"{member.mention}, who is on the list, just joined.",
-                              color=0x1b998b)
+        embed = discord.Embed(
+            title="Member Joined",
+            description=f"{member.mention} (`{member!s}`, `{member.id}`), who is on the list, just joined.",
+            color=0x1b998b
+        )
         embed.set_thumbnail(url=str(member.avatar_url))
         await destination.send(embed=embed)
 
@@ -29,8 +32,11 @@ class Watchlist(commands.Cog):
         if member.id not in self.the_list:
             return
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
-        embed = discord.Embed(title="Member Left", description=f"{member.mention}, who is on the list, just left.",
-                              color=0xf46036)
+        embed = discord.Embed(
+            title="Member Left",
+            description=f"{member.mention} (`{member!s}`, `{member.id}`), who is on the list, just left.",
+            color=0xf46036
+        )
         embed.set_thumbnail(url=str(member.avatar_url))
         await destination.send(embed=embed)
 
@@ -43,9 +49,11 @@ class Watchlist(commands.Cog):
         if before.nick == after.nick:
             return
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
-        embed = discord.Embed(title="Member Changed Nick",
-                              description=f"{before.display_name} is now known as {after.display_name} ({after.mention}).",
-                              color=0xc5d86d)
+        embed = discord.Embed(
+            title="Member Changed Nick",
+            description=f"{before.display_name} is now known as {after.display_name} ({after.mention}).",
+            color=0xc5d86d
+        )
         embed.set_thumbnail(url=str(after.avatar_url))
         await destination.send(embed=embed)
 
@@ -56,9 +64,11 @@ class Watchlist(commands.Cog):
         if after.id not in self.the_list:
             return
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
-        embed = discord.Embed(title="Member Updated Profile",
-                              description=f"{before}'s username is now {after} ({after.mention}).",
-                              color=0xc5d86d)
+        embed = discord.Embed(
+            title="Member Updated Profile",
+            description=f"{before}'s username is now {after} ({after.mention}).",
+            color=0xc5d86d
+        )
         embed.set_thumbnail(url=str(after.avatar_url))
         await destination.send(embed=embed)
 
@@ -67,8 +77,48 @@ class Watchlist(commands.Cog):
         if constants.MOD_ROLE_ID not in set(r.id for r in ctx.author.roles):
             return
 
-        embed = discord.Embed(title="Watchlist", description="\n".join(f"<@{i}>" for i in self.the_list))
-        await ctx.send(embed=embed)
+        in_guild = []
+        not_in_guild = []
+        for mid in self.the_list:
+            member = ctx.guild.get_member(mid)
+            if member is None:
+                not_in_guild.append(mid)
+            else:
+                in_guild.append(member)
+
+        # build strings for each member on the list
+        in_guild_strs = [f"{m.mention} (`{m!s}`, `{m.id}`)" for m in in_guild]
+        not_in_guild_strs = [f"`{m}` (<@{m}>)" for m in not_in_guild]
+
+        # break into args to create embeds with
+        in_guild_chunks = [""]
+        not_in_guild_chunks = [""]
+
+        for s in in_guild_strs:
+            if len(s) + len(in_guild_chunks[-1]) < 2000:
+                in_guild_chunks[-1] = f"{in_guild_chunks[-1]}\n{s}".strip()
+            else:
+                in_guild_chunks.append(s)
+
+        chunk_len = 1000
+        for s in not_in_guild_strs:
+            if len(s) + len(not_in_guild_chunks[-1]) < chunk_len:
+                not_in_guild_chunks[-1] = f"{not_in_guild_chunks[-1]}\n{s}".strip()
+            else:
+                chunk_len = 2000
+                not_in_guild_chunks.append(s)
+
+        # build the embeds
+        embeds = [discord.Embed(title="Watchlist", description=in_guild_chunks[0])]
+        for chunk in in_guild_chunks[1:]:
+            embeds.append(discord.Embed(description=chunk))
+        if not_in_guild_chunks[0]:
+            embeds[-1].add_field(name="Not in Server", value=not_in_guild_chunks[0])
+        for chunk in not_in_guild_chunks[1:]:
+            embeds.append(discord.Embed(description=chunk))
+
+        for embed in embeds:
+            await ctx.send(embed=embed)
 
     @watchlist.command()
     async def add(self, ctx, member):
