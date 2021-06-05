@@ -106,11 +106,11 @@ class Points(commands.Cog):
 
         user_infractions = get_infractions_for(self.bot, user)
 
-        embed = discord.Embed(title=f"Points for {user}", color=0xF8333C)
+        descriptions = []
+        active_points = 0
         if not user_infractions:
-            embed.description = "This user has no points. Hooray!"
+            descriptions.append("This user has no points. Hooray!")
         else:
-            infs = []
             infractions = tag_active(user_infractions)
 
             for (i, (infraction, active)) in enumerate(infractions):
@@ -118,19 +118,26 @@ class Points(commands.Cog):
                            f"(<@{infraction.mod_id}>, {infraction.timestamp})"
                 if not active:
                     inf_desc = f"~~{inf_desc}~~"
-                infs.append(inf_desc)
-            infs = '\n'.join(infs)
+                descriptions.append(inf_desc)
 
             active_points, expiry, lifetime_points = get_points(infractions)
             if active_points:
-                embed.description = f"{infs}\n\n{user} has {active_points} active points expiring at {expiry}, " \
-                                    f"and {lifetime_points} lifetime points."
-                embed.add_field(name="Recommended Action", value=recommended_action_for(active_points, user),
-                                inline=False)
+                descriptions.append(f"\n{user} has {active_points} active points expiring at {expiry}, "
+                                    f"and {lifetime_points} lifetime points.")
             else:
-                embed.description = f"{infs}\n\n{user} has no active points, and {lifetime_points} lifetime points."
+                descriptions.append(f"\n{user} has no active points, and {lifetime_points} lifetime points.")
 
-        await ctx.send(embed=embed)
+        embeds = [discord.Embed(title=f"Points for {user}", color=0xF8333C, description='')]
+        for line in descriptions:
+            if len(embeds[-1].description) + len(line) >= 2048:
+                embeds.append(discord.Embed(color=0xF8333C, description=''))
+            embeds[-1].description = f"{embeds[-1].description}\n{line}"
+
+        if active_points:
+            embeds[-1].add_field(name="Recommended Action", value=recommended_action_for(active_points, user),
+                                 inline=False)
+        for embed in embeds:
+            await ctx.send(embed=embed)
 
     @points.command(name='add')
     async def points_add(self, ctx, member, num: int, *, reason):
