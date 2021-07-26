@@ -52,15 +52,15 @@ def recommended_action_for(points, user):
     if points < 10:  # 0-10
         return "No action."
     elif points < 20:  # 10-20
-        return f"1 hour mute. Dyno command: `?mute {user.id} 1h Exceeded 10 points`"
+        return f"1 hour mute. Dyno command: `?mute {user.id} 1h <message>`"
     elif points < 30:  # 20-30
-        return f"24 hour mute. Dyno command: `?mute {user.id} 24h Exceeded 20 points`"
+        return f"24 hour mute. Dyno command: `?mute {user.id} 24h <message>`"
     elif points < 40:  # 30-40
-        return f"3 day mute. Dyno command: `?mute {user.id} 3d Exceeded 30 points`"
+        return f"3 day mute. Dyno command: `?mute {user.id} 3d <message>`"
     elif points < 50:  # 40-50
-        return f"7 day mute. Dyno command: `?mute {user.id} 7d Exceeded 40 points`"
+        return f"7 day mute. Dyno command: `?mute {user.id} 7d <message>`"
     else:  # 50+
-        return f"Permanent ban. Dyno command: `?ban {user.id} Exceeded 50 points`"
+        return f"Permanent ban. Dyno command: `?ban {user.id} <reason>`"
 
 
 def get_points(infractions):

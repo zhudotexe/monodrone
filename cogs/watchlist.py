@@ -10,6 +10,7 @@ class Watchlist(commands.Cog):
         self.bot = bot
         self.the_list = bot.db.jget("watchlist", [])
 
+    # ==== listeners ====
     @commands.Cog.listener()
     async def on_member_join(self, member):
         if not self.bot.is_ready():
@@ -72,6 +73,32 @@ class Watchlist(commands.Cog):
         embed.set_thumbnail(url=str(after.avatar_url))
         await destination.send(embed=embed)
 
+    @commands.Cog.listener()
+    async def on_member_ban(self, guild, user):
+        if not self.bot.is_ready():
+            return
+        if user.id not in self.the_list:
+            return
+
+        # remove from list
+        try:
+            self.the_list.remove(user.id)
+            self.bot.db.jset("watchlist", self.the_list)
+        except ValueError:
+            pass
+
+        # send notification
+        destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
+        embed = discord.Embed(
+            title="Member Banned",
+            description=f"{user.mention} (`{user!s}`, `{user.id}`), who is on the list, was just banned.\n"
+                        f"I've removed them from the list.",
+            color=0xf46036
+        )
+        embed.set_thumbnail(url=str(user.avatar_url))
+        await destination.send(embed=embed)
+
+    # ==== commands ====
     @commands.group(invoke_without_command=True, aliases=['list'])
     async def watchlist(self, ctx):
         if constants.MOD_ROLE_ID not in set(r.id for r in ctx.author.roles):
@@ -155,6 +182,34 @@ class Watchlist(commands.Cog):
         self.the_list.remove(uid)
         self.bot.db.jset("watchlist", self.the_list)
         await ctx.send(f"OK, removed {user} from the list.")
+
+    @watchlist.command()
+    async def clean(self, ctx):
+        if constants.MOD_ROLE_ID not in set(r.id for r in ctx.author.roles):
+            return
+
+        banned_users = await ctx.guild.bans()
+        ban_id_map = {be.user.id: be for be in banned_users}
+
+        # clean
+        cleaned_ban_entries = []
+        for uid in self.the_list.copy():
+            if uid not in ban_id_map:
+                continue
+            self.the_list.remove(uid)
+            cleaned_ban_entries.append(ban_id_map[uid])
+        self.bot.db.jset("watchlist", self.the_list)
+
+        # build output
+        ban_reasons = '\n'.join(
+            f'`{ban_entry.user!s}` (`{ban_entry.user.id}`) - Ban reason: {ban_entry.reason}'
+            for ban_entry in cleaned_ban_entries
+        )
+        out = f"Cleaned {len(cleaned_ban_entries)} banned users from the list.\n{ban_reasons}"
+
+        # send (maybe long?)
+        for i in range(0, len(out), 2000):
+            await ctx.send(out[i:i + 2000])
 
 
 def setup(bot):
