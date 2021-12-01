@@ -36,7 +36,7 @@ class AutoPublish(commands.Cog):
     @commands.has_role(constants.MOD_ROLE_ID)
     async def autopublish_add(self, ctx, channel: discord.TextChannel):
         """Adds or updates an autopublish rule for the given channel."""
-        self.autodelete_channels[channel.id] = True
+        self.autopublish_channels[channel.id] = True
         self.bot.db.jset("autopublish", self.autopublish_channels)
         await ctx.send(f"Okay, added autopublish rule to publish messages in {channel.mention}.")
 
