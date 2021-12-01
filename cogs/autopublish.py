@@ -14,7 +14,7 @@ class AutoPublish(commands.Cog):
     async def on_message(self, message):
         if not self.bot.is_ready():
             return
-        if not message.channel.id in ANNOUNCEMENT_CHANNELS:
+        if not message.channel.id in self.autopublish_channels:
             return
         await asyncio.sleep(0.5)  
         await message.publish()
