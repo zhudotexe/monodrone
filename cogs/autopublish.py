@@ -14,7 +14,7 @@ class AutoPublish(commands.Cog):
     async def on_message(self, message):
         if not self.bot.is_ready():
             return
-        if not message.channel.id in self.autopublish_channels:
+        if message.channel.id not in self.autopublish_channels:
             return
         await asyncio.sleep(0.5)  
         await message.publish()
@@ -28,7 +28,7 @@ class AutoPublish(commands.Cog):
         embed.description = '\n'.join(f"<#{channel}>"
                                       for channel in self.autopublish_channels) \
                             or "No active channels."
-        embed.set_footer(text="Use \".autopublish add #channel #\" to add a channel rule, "
+        embed.set_footer(text="Use \".autopublish add #channel\" to add a channel rule, "
                               "or \".autopublish remove #channel\" to remove one.")
         await ctx.send(embed=embed)
 
