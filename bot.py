@@ -7,7 +7,7 @@ from discord.ext.commands import Bot
 from jsondb import JSONDB
 
 TOKEN = os.getenv("TOKEN")
-COGS = ('cogs.watchlist', 'cogs.points', 'cogs.autodelete')
+COGS = ('cogs.watchlist', 'cogs.points', 'cogs.autodelete', 'cogs.autopublish')
 
 
 class Monodrone(Bot):
