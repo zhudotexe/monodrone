@@ -84,6 +84,8 @@ class Points(commands.Cog):
     async def on_message(self, message):
         if not self.bot.is_ready():
             return
+        if message.guild is None:
+            return
         if constants.MOD_ROLE_ID not in set(r.id for r in message.author.roles):
             return
         if not message.content.startswith('?warn '):
