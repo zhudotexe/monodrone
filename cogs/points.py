@@ -49,18 +49,20 @@ def tag_active(infs):
 
 
 def recommended_action_for(points, user):
+    recommendation = ("{long} mute. Dyno command: `?mute {user} {short} You have received a {long} mute for <reason>. "
+                      "If you wish to discuss or appeal this mute, please follow the instructions in #appeal`")
     if points < 10:  # 0-10
         return "No action."
     elif points < 20:  # 10-20
-        return f"1 hour mute. Dyno command: `?mute {user.id} 1h <message>`"
+        return recommendation.format(long="1 hour", short="1h", user=user.id)
     elif points < 30:  # 20-30
-        return f"24 hour mute. Dyno command: `?mute {user.id} 24h <message>`"
+        return recommendation.format(long="24 hour", short="24h", user=user.id)
     elif points < 40:  # 30-40
-        return f"3 day mute. Dyno command: `?mute {user.id} 3d <message>`"
+        return recommendation.format(long="3 day", short="3d", user=user.id)
     elif points < 50:  # 40-50
-        return f"7 day mute. Dyno command: `?mute {user.id} 7d <message>`"
+        return recommendation.format(long="7 day", short="7d", user=user.id)
     else:  # 50+
-        return f"Permanent ban. Dyno command: `?ban {user.id} <reason>`"
+        return f"Permanent ban. Dyno command: `?ban {user.id} You have been banned from the D&D Beyond discord server for <reason>`"
 
 
 def get_points(infractions):
