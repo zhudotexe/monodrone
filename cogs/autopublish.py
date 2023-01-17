@@ -14,11 +14,11 @@ class AutoPublish(commands.Cog):
     async def on_message(self, message):
         if not self.bot.is_ready():
             return
-        if message.channel.id not in self.autopublish_channels:
+        if str(message.channel.id) not in self.autopublish_channels:
             return
-        await asyncio.sleep(0.5)  
+        await asyncio.sleep(0.5)
         await message.publish()
-        
+
     # ==== commands ====
     @commands.group(invoke_without_command=True)
     @commands.has_role(constants.MOD_ROLE_ID)
@@ -36,7 +36,7 @@ class AutoPublish(commands.Cog):
     @commands.has_role(constants.MOD_ROLE_ID)
     async def autopublish_add(self, ctx, channel: disnake.TextChannel):
         """Adds or updates an autopublish rule for the given channel."""
-        self.autopublish_channels[channel.id] = True
+        self.autopublish_channels[str(channel.id)] = True
         self.bot.db.jset("autopublish", self.autopublish_channels)
         await ctx.send(f"Okay, added autopublish rule to publish messages in {channel.mention}.")
 
@@ -46,7 +46,7 @@ class AutoPublish(commands.Cog):
         """Removes an autopublish rule from a channel."""
         if channel.id not in self.autopublish_channels:
             return await ctx.send(f"{channel.mention} has no autopublish rule.")
-        del self.autopublish_channels[channel.id]
+        del self.autopublish_channels[str(channel.id)]
         self.bot.db.jset("autopublish", self.autopublish_channels)
         await ctx.send(f"Okay, removed autopublish rule from {channel.mention}.")
 
