@@ -7,7 +7,7 @@ from disnake.ext.commands import Bot
 from jsondb import JSONDB
 
 TOKEN = os.getenv("TOKEN")
-COGS = ('cogs.watchlist', 'cogs.points', 'cogs.autodelete', 'cogs.autopublish', 'cogs.utility')
+COGS = ('cogs.watchlist', 'cogs.points', 'cogs.autodelete', 'cogs.autopublish', 'cogs.utility', 'cogs.lookingforgroup')
 
 
 class Monodrone(Bot):
