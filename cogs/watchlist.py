@@ -1,5 +1,5 @@
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 import constants
 from utils import get_user
@@ -18,7 +18,7 @@ class Watchlist(commands.Cog):
         if member.id not in self.the_list:
             return
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Member Joined",
             description=f"{member.mention} (`{member!s}`, `{member.id}`), who is on the list, just joined.",
             color=0x1b998b
@@ -33,7 +33,7 @@ class Watchlist(commands.Cog):
         if member.id not in self.the_list:
             return
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Member Left",
             description=f"{member.mention} (`{member!s}`, `{member.id}`), who is on the list, just left.",
             color=0xf46036
@@ -50,7 +50,7 @@ class Watchlist(commands.Cog):
         if before.nick == after.nick:
             return
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Member Changed Nick",
             description=f"{before.display_name} is now known as {after.display_name} ({after.mention}).",
             color=0xc5d86d
@@ -65,7 +65,7 @@ class Watchlist(commands.Cog):
         if after.id not in self.the_list:
             return
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Member Updated Profile",
             description=f"{before}'s username is now {after} ({after.mention}).",
             color=0xc5d86d
@@ -89,7 +89,7 @@ class Watchlist(commands.Cog):
 
         # send notification
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Member Banned",
             description=f"{user.mention} (`{user!s}`, `{user.id}`), who is on the list, was just banned.\n"
                         f"I've removed them from the list.",
@@ -136,13 +136,13 @@ class Watchlist(commands.Cog):
                 not_in_guild_chunks.append(s)
 
         # build the embeds
-        embeds = [discord.Embed(title="Watchlist", description=in_guild_chunks[0])]
+        embeds = [disnake.Embed(title="Watchlist", description=in_guild_chunks[0])]
         for chunk in in_guild_chunks[1:]:
-            embeds.append(discord.Embed(description=chunk))
+            embeds.append(disnake.Embed(description=chunk))
         if not_in_guild_chunks[0]:
             embeds[-1].add_field(name="Not in Server", value=not_in_guild_chunks[0])
         for chunk in not_in_guild_chunks[1:]:
-            embeds.append(discord.Embed(description=chunk))
+            embeds.append(disnake.Embed(description=chunk))
 
         for embed in embeds:
             await ctx.send(embed=embed)

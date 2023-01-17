@@ -1,8 +1,8 @@
 import asyncio
 import datetime
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 import constants
 from utils import confirm, get_user
@@ -88,6 +88,8 @@ class Points(commands.Cog):
             return
         if message.guild is None:
             return
+        if message.author.bot:
+            return
         if constants.MOD_ROLE_ID not in set(r.id for r in message.author.roles):
             return
         if not message.content.startswith('?warn '):
@@ -131,10 +133,10 @@ class Points(commands.Cog):
             else:
                 descriptions.append(f"\n{user} has no active points, and {lifetime_points} lifetime points.")
 
-        embeds = [discord.Embed(title=f"Points for {user}", color=0xF8333C, description='')]
+        embeds = [disnake.Embed(title=f"Points for {user}", color=0xF8333C, description='')]
         for line in descriptions:
             if len(embeds[-1].description) + len(line) >= 2048:
-                embeds.append(discord.Embed(color=0xF8333C, description=''))
+                embeds.append(disnake.Embed(color=0xF8333C, description=''))
             embeds[-1].description = f"{embeds[-1].description}\n{line}"
 
         if active_points:
@@ -161,7 +163,7 @@ class Points(commands.Cog):
 
         infractions = tag_active(user_infractions)
 
-        embed = discord.Embed(title=f"Points Added for {user}", color=0xFCAB10)
+        embed = disnake.Embed(title=f"Points Added for {user}", color=0xFCAB10)
         embed.description = f"Added {new_infraction.points} points to {user} for {new_infraction.reason}."
         active_points, expiry, lifetime_points = get_points(infractions)
 
@@ -199,7 +201,7 @@ class Points(commands.Cog):
 
         self.bot.db.jset(f"{user.id}-points", [i.to_dict() for i, _ in infractions])
 
-        embed = discord.Embed(title=f"Infraction Removed for {user}", color=0x6BBF59)
+        embed = disnake.Embed(title=f"Infraction Removed for {user}", color=0x6BBF59)
         embed.description = f"Removed {removed.points} points from {user} for {removed.reason}."
         active_points, expiry, lifetime_points = get_points(infractions)
 

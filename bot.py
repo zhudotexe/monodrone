@@ -1,8 +1,8 @@
 import os
 
-import discord
-from discord.ext import commands
-from discord.ext.commands import Bot
+import disnake
+from disnake.ext import commands
+from disnake.ext.commands import Bot
 
 from jsondb import JSONDB
 
@@ -16,7 +16,7 @@ class Monodrone(Bot):
         self.db = JSONDB()
 
 
-intents = discord.Intents.all()
+intents = disnake.Intents.all()
 
 bot = Monodrone('.', intents=intents)
 

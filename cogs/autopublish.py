@@ -1,7 +1,7 @@
 import asyncio
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 import constants
 
@@ -24,7 +24,7 @@ class AutoPublish(commands.Cog):
     @commands.has_role(constants.MOD_ROLE_ID)
     async def autopublish(self, ctx):
         """Shows all channels with active autopublish."""
-        embed = discord.Embed(colour=0x60AFFF, title="Active Autopublish Channels")
+        embed = disnake.Embed(colour=0x60AFFF, title="Active Autopublish Channels")
         embed.description = '\n'.join(f"<#{channel}>"
                                       for channel in self.autopublish_channels) \
                             or "No active channels."
@@ -34,7 +34,7 @@ class AutoPublish(commands.Cog):
 
     @autopublish.command(name='add')
     @commands.has_role(constants.MOD_ROLE_ID)
-    async def autopublish_add(self, ctx, channel: discord.TextChannel):
+    async def autopublish_add(self, ctx, channel: disnake.TextChannel):
         """Adds or updates an autopublish rule for the given channel."""
         self.autopublish_channels[channel.id] = True
         self.bot.db.jset("autopublish", self.autopublish_channels)
@@ -42,7 +42,7 @@ class AutoPublish(commands.Cog):
 
     @autopublish.command(name='remove')
     @commands.has_role(constants.MOD_ROLE_ID)
-    async def autopublish_remove(self, ctx, channel: discord.TextChannel):
+    async def autopublish_remove(self, ctx, channel: disnake.TextChannel):
         """Removes an autopublish rule from a channel."""
         if channel.id not in self.autopublish_channels:
             return await ctx.send(f"{channel.mention} has no autopublish rule.")

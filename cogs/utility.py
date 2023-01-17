@@ -1,6 +1,8 @@
-import discord
-from discord.ext import commands
-from discord.utils import DISCORD_EPOCH
+import asyncio
+
+import disnake
+from disnake.ext import commands
+from disnake.utils import DISCORD_EPOCH
 
 import constants
 

@@ -1,6 +1,6 @@
 import asyncio
 
-from discord.ext.commands import BadArgument, MemberConverter
+from disnake.ext.commands import BadArgument, MemberConverter
 
 
 async def get_user(ctx, member):
