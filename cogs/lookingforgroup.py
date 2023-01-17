@@ -560,7 +560,9 @@ class LookingForGroup(commands.Cog):
         timers: dict = self.lfg_timers.get(str(inter.author.id), {})
         timer, message_id = timers.get(timer_type, (0, 0))
 
-        if timer and timer <= datetime.now().timestamp():
+        if not timer:
+            return False
+        elif timer <= datetime.now().timestamp():
             timers.pop(timer_type)
             self.lfg_timers[inter.author.id] = timers
             self.bot.db.jset("lookingforgroup", self.lfg_timers)
