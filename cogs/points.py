@@ -52,7 +52,7 @@ def recommended_action_for(points, user):
     recommendation = ("{long} mute.\n?mute {user} {short} You have received a {long} mute for <reason>, combined with previous warnings. "
                       "If you wish to discuss or appeal this mute, please follow the instructions in #appeal")
     if points < 10:  # 0-10
-        return "No action."
+        return "No action.", ""
     elif points < 20:  # 10-20
         return recommendation.format(long="1 hour", short="1h", user=user.id).split('\n')
     elif points < 30:  # 20-30
@@ -143,7 +143,8 @@ class Points(commands.Cog):
         if active_points:
             recommendation, command = recommended_action_for(active_points, user)
             embeds[-1].add_field(name="Recommended Action", value=recommendation, inline=False)
-            embeds[-1].add_field(name="Dyno Command", value=command, inline=False)
+            if command:
+                embeds[-1].add_field(name="Dyno Command", value=command, inline=False)
         for embed in embeds:
             await ctx.send(embed=embed)
 
@@ -175,7 +176,8 @@ class Points(commands.Cog):
 
         recommendation, command = recommended_action_for(active_points, user)
         embed.add_field(name="Recommended Action", value=recommendation, inline=False)
-        embed.add_field(name="Dyno Command", value=command, inline=False)
+        if command:
+            embed.add_field(name="Dyno Command", value=command, inline=False)
 
         await ctx.send(embed=embed)
 
@@ -216,7 +218,8 @@ class Points(commands.Cog):
 
         recommendation, command = recommended_action_for(active_points, user)
         embed.add_field(name="Recommended Action", value=recommendation, inline=False)
-        embed.add_field(name="Dyno Command", value=command, inline=False)
+        if command:
+            embed.add_field(name="Dyno Command", value=command, inline=False)
 
         await ctx.send(embed=embed)
 
