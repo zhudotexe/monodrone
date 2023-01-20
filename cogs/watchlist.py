@@ -21,7 +21,7 @@ class Watchlist(commands.Cog):
         embed = disnake.Embed(
             title="Member Joined",
             description=f"{member.mention} (`{member!s}`, `{member.id}`), who is on the list, just joined.",
-            color=0x1b998b
+            color=0x1B998B,
         )
         embed.set_thumbnail(url=str(member.avatar_url))
         await destination.send(embed=embed)
@@ -36,7 +36,7 @@ class Watchlist(commands.Cog):
         embed = disnake.Embed(
             title="Member Left",
             description=f"{member.mention} (`{member!s}`, `{member.id}`), who is on the list, just left.",
-            color=0xf46036
+            color=0xF46036,
         )
         embed.set_thumbnail(url=str(member.avatar_url))
         await destination.send(embed=embed)
@@ -53,7 +53,7 @@ class Watchlist(commands.Cog):
         embed = disnake.Embed(
             title="Member Changed Nick",
             description=f"{before.display_name} is now known as {after.display_name} ({after.mention}).",
-            color=0xc5d86d
+            color=0xC5D86D,
         )
         embed.set_thumbnail(url=str(after.avatar_url))
         await destination.send(embed=embed)
@@ -68,7 +68,7 @@ class Watchlist(commands.Cog):
         embed = disnake.Embed(
             title="Member Updated Profile",
             description=f"{before}'s username is now {after} ({after.mention}).",
-            color=0xc5d86d
+            color=0xC5D86D,
         )
         embed.set_thumbnail(url=str(after.avatar_url))
         await destination.send(embed=embed)
@@ -91,15 +91,17 @@ class Watchlist(commands.Cog):
         destination = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
         embed = disnake.Embed(
             title="Member Banned",
-            description=f"{user.mention} (`{user!s}`, `{user.id}`), who is on the list, was just banned.\n"
-                        f"I've removed them from the list.",
-            color=0xf46036
+            description=(
+                f"{user.mention} (`{user!s}`, `{user.id}`), who is on the list, was just banned.\n"
+                "I've removed them from the list."
+            ),
+            color=0xF46036
         )
         embed.set_thumbnail(url=str(user.avatar_url))
         await destination.send(embed=embed)
 
     # ==== commands ====
-    @commands.group(invoke_without_command=True, aliases=['list'])
+    @commands.group(invoke_without_command=True, aliases=["list"])
     async def watchlist(self, ctx):
         if constants.MOD_ROLE_ID not in set(r.id for r in ctx.author.roles):
             return
@@ -201,15 +203,15 @@ class Watchlist(commands.Cog):
         self.bot.db.jset("watchlist", self.the_list)
 
         # build output
-        ban_reasons = '\n'.join(
-            f'`{ban_entry.user!s}` (`{ban_entry.user.id}`) - Ban reason: {ban_entry.reason}'
+        ban_reasons = "\n".join(
+            f"`{ban_entry.user!s}` (`{ban_entry.user.id}`) - Ban reason: {ban_entry.reason}"
             for ban_entry in cleaned_ban_entries
         )
         out = f"Cleaned {len(cleaned_ban_entries)} banned users from the list.\n{ban_reasons}"
 
         # send (maybe long?)
         for i in range(0, len(out), 2000):
-            await ctx.send(out[i:i + 2000])
+            await ctx.send(out[i : i + 2000])
 
 
 def setup(bot):

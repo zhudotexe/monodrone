@@ -15,6 +15,7 @@ NO_DELETE_ROLES = (
 # data schema:
 # autodelete.json: dict int->int channel->days
 
+
 class AutoDelete(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -29,9 +30,13 @@ class AutoDelete(commands.Cog):
     async def deleter(self):
         def role_delete_check(msg):
             # don't delete messages by anyone with any of these roles, or pinned messages
-            return not (msg.pinned
-                        or (isinstance(msg.author, disnake.Member)
-                            and set(r.id for r in msg.author.roles).intersection(NO_DELETE_ROLES)))
+            return not (
+                msg.pinned
+                or (
+                    isinstance(msg.author, disnake.Member)
+                    and set(r.id for r in msg.author.roles).intersection(NO_DELETE_ROLES)
+                )
+            )
 
         await self.bot.wait_until_ready()
         log_channel = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
@@ -45,18 +50,24 @@ class AutoDelete(commands.Cog):
             # delete and log
             try:
                 delete_log = io.StringIO()
-                deleted = await channel.purge(limit=None,
-                                              check=role_delete_check,
-                                              before=datetime.datetime.utcnow() - datetime.timedelta(days=days))
+                deleted = await channel.purge(
+                    limit=None,
+                    check=role_delete_check,
+                    before=datetime.datetime.utcnow() - datetime.timedelta(days=days),
+                )
                 for message in deleted:
-                    delete_log.write(f"[{message.created_at.isoformat()}] {message.author} ({message.author.id})\n"
-                                     f"{message.content}\n\n")
+                    delete_log.write(
+                        f"[{message.created_at.isoformat()}] {message.author} ({message.author.id})\n"
+                        f"{message.content}\n\n"
+                    )
                 if not deleted:
                     continue
                 delete_log.seek(0)
                 date = datetime.date.today()
-                await log_channel.send(f"Deleted {len(deleted)} messages from {channel.mention}.",
-                                       file=disnake.File(delete_log, filename=f"{channel.name}-{date}.log"))
+                await log_channel.send(
+                    f"Deleted {len(deleted)} messages from {channel.mention}.",
+                    file=disnake.File(delete_log, filename=f"{channel.name}-{date}.log"),
+                )
             except disnake.HTTPException as e:
                 print(e)
                 await log_channel.send(f"Unable to delete messages from {channel.mention}: {e}")
@@ -67,14 +78,19 @@ class AutoDelete(commands.Cog):
     async def autodelete(self, ctx):
         """Shows all channels with active autodelete."""
         embed = disnake.Embed(colour=0x60AFFF, title="Active Autodelete Channels")
-        embed.description = '\n'.join(f"<#{channel}>: {days} days"
-                                      for channel, days in self.autodelete_channels.items()) \
-                            or "No active channels."
-        embed.set_footer(text="Use \".autodelete add #channel #\" to add a channel rule, "
-                              "or \".autodelete remove #channel\" to remove one.")
+        embed.description = (
+            "\n".join(f"<#{channel}>: {days} days" for channel, days in self.autodelete_channels.items())
+            or "No active channels."
+        )
+        embed.set_footer(
+            text=(
+                'Use ".autodelete add #channel #" to add a channel rule, '
+                'or ".autodelete remove #channel" to remove one.'
+            )
+        )
         await ctx.send(embed=embed)
 
-    @autodelete.command(name='add')
+    @autodelete.command(name="add")
     @commands.has_role(constants.MOD_ROLE_ID)
     async def autodelete_add(self, ctx, channel: disnake.TextChannel, days: int):
         """Adds or updates an autodelete rule for the given channel."""
@@ -84,7 +100,7 @@ class AutoDelete(commands.Cog):
         self.bot.db.jset("autodelete", self.autodelete_channels)
         await ctx.send(f"Okay, added autodelete rule to delete messages older than {days} days from {channel.mention}.")
 
-    @autodelete.command(name='remove')
+    @autodelete.command(name="remove")
     @commands.has_role(constants.MOD_ROLE_ID)
     async def autodelete_remove(self, ctx, channel: disnake.TextChannel):
         """Removes an autodelete rule from a channel."""

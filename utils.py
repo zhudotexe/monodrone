@@ -23,9 +23,9 @@ def get_positivity(string):
     if isinstance(string, bool):  # oi!
         return string
     lowered = string.lower()
-    if lowered in ('yes', 'y', 'true', 't', '1', 'enable', 'on'):
+    if lowered in ("yes", "y", "true", "t", "1", "enable", "on"):
         return True
-    elif lowered in ('no', 'n', 'false', 'f', '0', 'disable', 'off'):
+    elif lowered in ("no", "n", "false", "f", "0", "disable", "off"):
         return False
     else:
         return None
@@ -42,7 +42,7 @@ async def confirm(ctx, message, delete_msgs=False):
     """
     msg = await ctx.channel.send(message)
     try:
-        reply = await ctx.bot.wait_for('message', timeout=30, check=auth_and_chan(ctx))
+        reply = await ctx.bot.wait_for("message", timeout=30, check=auth_and_chan(ctx))
     except asyncio.TimeoutError:
         return None
     replyBool = get_positivity(reply.content) if reply is not None else None

@@ -22,9 +22,11 @@ class Utility(commands.Cog):
         await self._private_thread(inter, inter.target)
 
     async def _private_thread(self, inter: disnake.ApplicationCommandInteraction, target: disnake.Member):
-        thread: disnake.Thread = await inter.channel.create_thread(name=f"{target.name} Private Thread",
-                                                                   type=disnake.ChannelType.private_thread,
-                                                                   invitable=False)
+        thread: disnake.Thread = await inter.channel.create_thread(
+            name=f"{target.name} Private Thread",
+            type=disnake.ChannelType.private_thread,
+            invitable=False,
+        )
 
         await thread.send(
             f"Hello {target.mention}, this is a private thread, visible only to you and the moderator team."
@@ -65,7 +67,7 @@ class Utility(commands.Cog):
 
             snowflake_timestamp = int(((snowflake >> 22) + DISCORD_EPOCH) / 1000)
             out.append(f"`{snowflake}` -> <t:{snowflake_timestamp}:f> (<t:{snowflake_timestamp}:R>)")
-        await ctx.send('\n'.join(out))
+        await ctx.send("\n".join(out))
 
 
 def setup(bot):
