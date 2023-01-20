@@ -2,10 +2,11 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 import disnake
 from disnake import TextInputStyle
-from disnake.ext import commands
+from disnake.ext import commands, tasks
 
 from typing import TYPE_CHECKING
 
+import constants
 
 if TYPE_CHECKING:
     from bot import Monodrone
@@ -217,9 +218,9 @@ class SubmissionView(disnake.ui.View):
                                inline=False)
 
         channel = await inter.guild.fetch_channel(CHANNELS.get(self.lf_type))
-        submission = await channel.send(embed=embed, view=PostedView(self.bot))
+        submission = await channel.send(embed=embed, view=PostedView(self.bot, lf_type=self.lf_type, lfg_timers=self.lfg_timers))
 
-        await submission.create_thread(name=f"{inter.author} - Looking for {self.lf_type}")
+        await submission.create_thread(name=f"{inter.author} - Looking for {self.lf_type}", auto_archive_duration=10800)
         await inter.edit_original_message(embed=None, view=None,
                                           content=f"Form submitted! [View it here]({submission.jump_url})")
 
@@ -231,10 +232,39 @@ class SubmissionView(disnake.ui.View):
         self.bot.db.jset("lookingforgroup", self.lfg_timers)
 
 
-class PostedView(disnake.ui.View):
-    def __init__(self, bot: "Monodrone" = None):
+class ModResetView(disnake.ui.View):
+    def __init__(self, bot: "Monodrone" = None, lf_type: str = None, lfg_timers: dict = None, target: disnake.Member = None):
         super().__init__(timeout=None)
         self.bot = bot
+        self.lf_type = lf_type
+        self.lfg_timers = lfg_timers
+        self.target = target
+        if self.lfg_timers is None:
+            self.lfg_timers = self.bot.db.jget("lookingforgroup", {})
+
+    @disnake.ui.button(label="Reset Timer", style=disnake.ButtonStyle.blurple, custom_id="persistent:reset")
+    async def reset(self, _: disnake.ui.Button, inter: disnake.Interaction):
+        await inter.response.defer()
+
+        # remove timer
+        if str(self.target.id) in self.lfg_timers:
+            self.lfg_timers[str(inter.author.id)].pop(self.lf_type, None)
+
+        self.bot.db.jset("lookingforgroup", self.lfg_timers)
+        await inter.edit_original_message(view=None, content=f"{self.lf_type} timer reset for {self.target.mention}")
+
+        log_channel = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
+        await log_channel.send(f"{inter.author.mention} reset {self.target.mention}'s {self.lf_type} timer.")
+
+
+class PostedView(disnake.ui.View):
+    def __init__(self, bot: "Monodrone" = None, lf_type: str = None, lfg_timers: dict = None):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.lf_type = lf_type
+        self.lfg_timers = lfg_timers
+        if self.lfg_timers is None:
+            self.lfg_timers = self.bot.db.jget("lookingforgroup", {})
 
     @disnake.ui.button(label="Delete", style=disnake.ButtonStyle.danger, row=4, custom_id="persistent:delete")
     async def cancel(self, _: disnake.ui.Button, inter: disnake.Interaction):
@@ -243,17 +273,25 @@ class PostedView(disnake.ui.View):
         message = await inter.original_message()
         embed = message.embeds[0]
         timestamp = int(embed.timestamp.timestamp())
-        original_author = str(inter.author.id) in embed.description
+        original_author = await inter.guild.fetch_member(int(embed.description.strip("<@!>")))
 
-        # if not the original author of the submission, or staff
-        if not (original_author or set(r.id for r in inter.author.roles).intersection(DELETE_ROLES)):
+        # if not the original author of the submission, or staff, ignore
+        if not (inter.author == original_author or set(r.id for r in inter.author.roles).intersection(DELETE_ROLES)):
             return
+
+        if inter.author == original_author:
+            view = disnake.utils.MISSING
+            pronoun = "You"
+        else:
+            view = ModResetView(bot=self.bot, lf_type=self.lf_type, lfg_timers=self.lfg_timers, target=original_author)
+            pronoun = "They"
 
         await inter.delete_original_message()
         await inter.send(
-            f"Submission removed. {'You' if original_author else 'They'} can post another on: "
+            f"Submission removed. {pronoun} can post another on: "
             f"<t:{timestamp}> (<t:{timestamp}:R>)",
-            ephemeral=True
+            ephemeral=True,
+            view=view
         )
 
 
@@ -266,7 +304,7 @@ class DMSubmissionView(SubmissionView):
                 placeholder=looking_for_dm[comp_type].placeholder,
                 custom_id=comp_type,
                 style=looking_for_dm[comp_type].style,
-                max_length=900,
+                max_length=750,
             )
             for comp_type in looking_for_dm if comp_type != "opt_in"
         ]
@@ -342,7 +380,7 @@ class PlayersSubmissionView(SubmissionView):
                 placeholder=looking_for_players[comp_type].placeholder,
                 custom_id=comp_type,
                 style=looking_for_players[comp_type].style,
-                max_length=900,
+                max_length=750,
             )
             for comp_type in looking_for_players
         ]
@@ -400,7 +438,7 @@ class CommunitySubmissionView(SubmissionView):
                 placeholder=looking_for_community[comp_type].placeholder,
                 custom_id=comp_type,
                 style=looking_for_community[comp_type].style,
-                max_length=900,
+                max_length=750,
             )
             for comp_type in looking_for_community
         ]
@@ -458,7 +496,7 @@ class PaidSubmissionView(SubmissionView):
                 placeholder=looking_for_paid[comp_type].placeholder,
                 custom_id=comp_type,
                 style=looking_for_paid[comp_type].style,
-                max_length=900,
+                max_length=750,
             )
             for comp_type in looking_for_paid
         ]
@@ -535,6 +573,9 @@ class LookingForGroup(commands.Cog):
         self.bot.add_view(PaidSubmissionView(bot=self.bot))
 
         self.bot.add_view(PostedView(bot=self.bot))
+        self.bot.add_view(ModResetView(bot=self.bot))
+
+        self.cleanup_timers.start()
 
         # Try to get the autodelete loop timing
         auto_delete_cog = self.bot.get_cog('AutoDelete')
@@ -543,6 +584,32 @@ class LookingForGroup(commands.Cog):
             self.loop_offset = loop.next_iteration
 
         print(f"Looking for group offset set as {self.loop_offset}...")
+
+    def cog_unload(self):
+        self.cleanup_timers.cancel()
+
+    @tasks.loop(hours=168)
+    async def cleanup_timers(self):
+        await self.bot.wait_until_ready()
+
+        print(f"Cleaning up old /looking-for timers...")
+
+        def expired_timer(pair) -> bool:
+            key, value = pair
+            if value[0] <= now:
+                return False
+            return True
+
+        new_lfg_timers = {}
+        now = datetime.now().timestamp()
+
+        for user_id, timers in self.lfg_timers.items():
+            timers = dict(filter(expired_timer, timers.items()))
+            if timers:
+                new_lfg_timers[user_id] = timers
+
+        self.lfg_timers = new_lfg_timers
+        self.bot.db.jset("lookingforgroup", self.lfg_timers)
 
     def base_embed(self, title: str, inter: disnake.ApplicationCommandInteraction):
         embed = disnake.Embed(timestamp=self.loop_offset + timedelta(days=7))
@@ -598,6 +665,39 @@ class LookingForGroup(commands.Cog):
         else:
             await inter.author.remove_roles(role)
             await inter.send(f"[debug] {role.mention} removed.", ephemeral=True)
+
+
+    @commands.user_command(name="Reset - DM")
+    async def user_reset_dm(self, inter: disnake.UserCommandInteraction):
+        await self._reset_timer(inter, inter.target, "Dungeon Master")
+
+    @commands.user_command(name="Reset - Players")
+    async def user_reset_players(self, inter: disnake.UserCommandInteraction):
+        await self._reset_timer(inter, inter.target, "Players")
+
+    @commands.user_command(name="Reset - Paid")
+    async def user_reset_paid(self, inter: disnake.UserCommandInteraction):
+        await self._reset_timer(inter, inter.target, "Paid")
+
+    @commands.user_command(name="Reset - Community")
+    async def user_reset_community(self, inter: disnake.UserCommandInteraction):
+        await self._reset_timer(inter, inter.target, "Community")
+
+    async def _reset_timer(self, inter: disnake.ApplicationCommandInteraction, target: disnake.Member, lf_type):
+        reset = None
+
+        if str(target.id) in self.lfg_timers:
+            reset = self.lfg_timers[str(inter.author.id)].pop(lf_type, None)
+            self.bot.db.jset("lookingforgroup", self.lfg_timers)
+
+        if not reset:
+            await inter.send(f"{target.mention} had no running timer for {lf_type}", ephemeral=True)
+            return
+
+        await inter.send(f"{lf_type} timer reset for {target.mention}", ephemeral=True)
+
+        log_channel = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
+        await log_channel.send(f"{inter.author.mention} reset {target.mention}'s {lf_type} timer.")
 
 
     @commands.slash_command(name="looking-for")
