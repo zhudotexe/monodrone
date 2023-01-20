@@ -780,22 +780,6 @@ class LookingForGroup(commands.Cog):
 
         return True
 
-    @commands.slash_command(name="test-reset", description="[debug] Resets your timers")
-    async def test_reset(self, inter: disnake.ApplicationCommandInteraction):
-        self.lfg_timers[str(inter.author.id)] = {}
-        self.bot.db.jset("lookingforgroup", self.lfg_timers)
-        await inter.send("[debug] Timers reset.", ephemeral=True)
-
-    @commands.slash_command(name="mod-role", description="[debug] Toggles the Moderator role")
-    async def test_mod_role(self, inter: disnake.ApplicationCommandInteraction):
-        role = inter.guild.get_role(1064918245989175438)
-        if role not in inter.author.roles:
-            await inter.author.add_roles(role)
-            await inter.send(f"[debug] {role.mention} added.", ephemeral=True)
-        else:
-            await inter.author.remove_roles(role)
-            await inter.send(f"[debug] {role.mention} removed.", ephemeral=True)
-
     @commands.user_command(name="Reset - DM")
     async def user_reset_dm(self, inter: disnake.UserCommandInteraction):
         await self._reset_timer(inter, inter.target, "Dungeon Master")
