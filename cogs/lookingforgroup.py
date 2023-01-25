@@ -52,17 +52,17 @@ looking_for_dm = {
     "time": LookingForField(
         value="[2] Location/Timezone",
         desc=(
-            "Your physical location and/or timezone as appropriate. You can use [Discord"
+            "Your region and/or timezone as appropriate. You can use [Discord"
             " timestamp](https://hammertime.cyou/) tags here!"
         ),
-        placeholder="Your physical location and/or timezone as appropriate.",
+        placeholder="Your region and/or timezone as appropriate.",
     ),
     "availability": LookingForField(value="[3] Availability", desc="Describe when you are available to play."),
     "style": LookingForField(
         value="[4] Game Style",
         desc=(
             "Some information about what sort of game you are looking (e.g. roleplay heavy, hack'n'slash, political "
-            "intrigue, horror, etc.)"
+            "intrigue, horror, etc.). This could include what edition of D&D you play, or how you feel about homebrew!"
         ),
         placeholder="What sort of game are you looking for?",
     ),
@@ -77,7 +77,7 @@ looking_for_dm = {
     "opt_in": LookingForField(
         value="[6] Opt In (Default: Opt Out to All)",
         desc=(
-            "If you would like to receive invites from Community Game Servers, Paid DMs, or other similar services "
+            "If you would like to receive invites from Community Games, Paid Games, or other similar services "
             "please indicate that here"
         ),
     ),
@@ -94,13 +94,14 @@ looking_for_dm = {
 
 looking_for_players = {
     "time": LookingForField(
-        value="[1] When does the group gather to play?",
+        value="[1] Game Time",
         desc="Time and date, including timezone. You can use [Discord timestamp](https://hammertime.cyou/) tags here!",
         placeholder="Time and date, including timezone.",
     ),
     "style": LookingForField(
         value="[2] What style of game does the group play?",
-        desc="Eg. Roleplay heavy, hack and slash, political intrigue, horror, official adventure, homebrew, etc.",
+        desc="Eg. Roleplay heavy, hack and slash, political intrigue, horror, official adventure, homebrew, etc. "
+             "This could include what edition of D&D you play, or how you feel about homebrew!",
         placeholder="What sort of game are you looking for?",
     ),
     "method": LookingForField(
@@ -137,7 +138,8 @@ looking_for_paid = {
     ),
     "style": LookingForField(
         value="[2] What style of game does the group play?",
-        desc="Eg. Roleplay heavy, hack and slash, political intrigue, horror, official adventure, homebrew, etc.",
+        desc="Eg. Roleplay heavy, hack and slash, political intrigue, horror, official adventure, homebrew, etc. "
+             "This could include what edition of D&D you play, or how you feel about homebrew!",
         placeholder="What sort of game are you looking for?",
     ),
     "method": LookingForField(
@@ -175,7 +177,7 @@ looking_for_community = {
         value="[3] Way(s) we play",
         desc=(
             "How does your community play? Video over a specific chat service? Text? Play by post? Using Discord/DDB/A"
-            " specific VTT system?"
+            " specific VTT system? This could include what edition of D&D you play, or how you feel about homebrew!"
         ),
         placeholder="How does your community play?",
     ),
@@ -193,12 +195,12 @@ looking_for_community = {
 
 opt_in_options = [
     disnake.SelectOption(
-        label="Community Game Servers",
-        description="For example: west marches, or multi-campaign servers",
+        label="Community Games",
+        description="For example: West Marches, or multi-campaign servers",
         value="invite",
     ),
     disnake.SelectOption(
-        label="Paid DMs",
+        label="Paid Games",
         description="Are you open towards paid DMing services?",
         value="paid",
     ),
@@ -256,7 +258,7 @@ class SubmissionView(disnake.ui.View):
 
         await submission.create_thread(
             name=f"{inter.author} - Looking for {self.lf_type}",
-            auto_archive_duration=10800,
+            auto_archive_duration=10080,
         )
         await inter.edit_original_message(
             embed=None,
@@ -369,7 +371,7 @@ class DMSubmissionView(SubmissionView):
                 max_length=750,
             )
             for comp_type in looking_for_dm
-            if comp_type != "opt_in"
+            if not comp_type.startswith("opt_")
         ]
 
     @disnake.ui.button(
@@ -447,8 +449,8 @@ class DMSubmissionView(SubmissionView):
             index=5,
             name=looking_for_dm["opt_in"].value,
             value=(
-                f"{looking_for_dm['opt_in'].desc}\n {opt_in('invite')} Community Game Servers\n"
-                f"{opt_in('paid')} Paid DMs\n{opt_in('other')} Other Services"
+                f"{looking_for_dm['opt_in'].desc}\n {opt_in('invite')} Community Games\n"
+                f"{opt_in('paid')} Paid Games\n{opt_in('other')} Other Services"
             ),
             inline=False,
         )
@@ -749,9 +751,7 @@ class LookingForGroup(commands.Cog):
         return embed
 
     async def post_cooldown(self, inter: disnake.ApplicationCommandInteraction, timer_type: str):
-        """Check the cooldown on a posting type for a specific user.
-
-        Returns the cooldown and message id for their posting"""
+        """Check the cooldown on a posting type for a specific user."""
 
         timers: dict = self.lfg_timers.get(str(inter.author.id), {})
         timer, message_id = timers.get(timer_type, (0, 0))
@@ -833,7 +833,7 @@ class LookingForGroup(commands.Cog):
 
         for field, values in looking_for_dm.items():
             if field == "opt_in":
-                desc = f"{values.desc}\n ❎ Community Game Servers\n❎ Paid DMs\n❎ Other Services"
+                desc = f"{values.desc}\n ❎ Community Games\n❎ Paid Games\n❎ Other Services"
             else:
                 desc = f"> *Not Set* - {values.desc}"
 

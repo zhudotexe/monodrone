@@ -11,6 +11,31 @@ class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.message_command(name="Alert Mods")
+    async def mod_ping(self, inter: disnake.MessageCommandInteraction):
+        """Allows a user to send an alert to moderators, linking to a specific message."""
+
+        mod_ping_channel = await inter.guild.fetch_channel(constants.MOD_PING_CHANNEL)
+        now = datetime.datetime.now()
+        timestamp = int(now.timestamp())
+
+        message = inter.target
+
+        embed = disnake.Embed(title=f"{inter.author.name} has requested a moderator", timestamp=now)
+        embed.set_author(name=inter.author.name, icon_url=inter.author.avatar.url)
+        embed.description = f"Requested by {inter.author.mention} in {inter.channel.mention}\n" \
+                            f"<t:{timestamp}> (<t:{timestamp}:R>)\n\n" \
+                            f"[The request was for this message]({message.jump_url}) by {message.author.mention}"
+        embed.add_field(name="Message Contents", value=message.content[:2000])
+
+        await mod_ping_channel.send(embed=embed)
+
+        await inter.send(
+            f"Moderators have been pinged for [this Message]({message.jump_url}).",
+            ephemeral=True,
+            suppress_embeds=True
+        )
+
     @commands.message_command(name="Private Thread")
     async def message_private_thread(self, inter: disnake.MessageCommandInteraction):
         """For moderators/staff to quickly create a private thread for a particular user, via that users message."""
@@ -22,7 +47,14 @@ class Utility(commands.Cog):
         await self._private_thread(inter, inter.target)
 
     async def _private_thread(self, inter: disnake.ApplicationCommandInteraction, target: disnake.Member):
-        thread: disnake.Thread = await inter.channel.create_thread(
+        """Creates a private thread in the given channel (or #moderator-support if in #moderator-alerts) and invites the user."""
+
+        if inter.channel_id == 1067223029861580831:  # moderator-alerts
+            channel = inter.guild.get_channel(568911894459711490)  # moderator-support
+        else:
+            channel = inter.channel
+
+        thread: disnake.Thread = await channel.create_thread(
             name=f"{target.name} Private Thread",
             type=disnake.ChannelType.private_thread,
             invitable=False,
@@ -33,7 +65,7 @@ class Utility(commands.Cog):
         )
         await thread.add_user(inter.author)
 
-        await inter.send(f"Thread {thread.mention} created.", ephemeral=True)
+        await inter.send(f"The private thread {thread.mention} has been created.", ephemeral=True)
 
     @commands.Cog.listener()
     async def on_guild_channel_update(self, before: disnake.abc.GuildChannel, after: disnake.abc.GuildChannel):
