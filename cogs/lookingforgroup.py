@@ -250,7 +250,7 @@ class SubmissionView(disnake.ui.View):
                 continue
             embed.set_field_at(index=index, name=field.name, value="\n".join(value), inline=False)
 
-        channel = await inter.guild.fetch_channel(CHANNELS.get(self.lf_type))
+        channel = self.bot.get_channel(CHANNELS.get(self.lf_type))
         submission = await channel.send(
             embed=embed,
             view=PostedView(self.bot, lf_type=self.lf_type, lfg_timers=self.lfg_timers),
@@ -780,19 +780,19 @@ class LookingForGroup(commands.Cog):
 
         return True
 
-    @commands.user_command(name="Reset - DM")
+    @commands.user_command(name="Reset - DM", default_member_permissions=disnake.Permissions(moderate_members=True))
     async def user_reset_dm(self, inter: disnake.UserCommandInteraction):
         await self._reset_timer(inter, inter.target, "Dungeon Master")
 
-    @commands.user_command(name="Reset - Players")
+    @commands.user_command(name="Reset - Players", default_member_permissions=disnake.Permissions(moderate_members=True))
     async def user_reset_players(self, inter: disnake.UserCommandInteraction):
         await self._reset_timer(inter, inter.target, "Players")
 
-    @commands.user_command(name="Reset - Paid")
+    @commands.user_command(name="Reset - Paid", default_member_permissions=disnake.Permissions(moderate_members=True))
     async def user_reset_paid(self, inter: disnake.UserCommandInteraction):
         await self._reset_timer(inter, inter.target, "Paid")
 
-    @commands.user_command(name="Reset - Community")
+    @commands.user_command(name="Reset - Community", default_member_permissions=disnake.Permissions(moderate_members=True))
     async def user_reset_community(self, inter: disnake.UserCommandInteraction):
         await self._reset_timer(inter, inter.target, "Community")
 

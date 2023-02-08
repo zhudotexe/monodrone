@@ -5,29 +5,36 @@ import disnake
 from disnake.ext import commands
 from disnake.utils import DISCORD_EPOCH
 
+from typing import TYPE_CHECKING
+
 import constants
 
+if TYPE_CHECKING:
+    from bot import Monodrone
 
 class Utility(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: "Monodrone" = bot
 
     @commands.message_command(name="Alert Mods")
     async def mod_ping(self, inter: disnake.MessageCommandInteraction):
         """Allows a user to send an alert to moderators, linking to a specific message."""
 
-        mod_ping_channel = await inter.guild.fetch_channel(constants.MOD_PING_CHANNEL)
+        mod_ping_channel = self.bot.get_channel(constants.MOD_PING_CHANNEL_ID)
         now = datetime.datetime.now()
         timestamp = int(now.timestamp())
 
         message = inter.target
+
+        message_chunks = [message.content[i:i+1000] for i in range(0, len(message.content), 1000)]
 
         embed = disnake.Embed(title=f"{inter.author.name} has requested a moderator", timestamp=now)
         embed.set_author(name=inter.author.name, icon_url=inter.author.avatar.url)
         embed.description = f"Requested by {inter.author.mention} in {inter.channel.mention}\n" \
                             f"<t:{timestamp}> (<t:{timestamp}:R>)\n\n" \
                             f"[The request was for this message]({message.jump_url}) by {message.author.mention}"
-        embed.add_field(name="Message Contents", value=message.content[:2000])
+        for i, chunk in enumerate(message_chunks):
+            embed.add_field(name="Message Contents" if i == 0 else "\u200b", value=chunk, inline=False)
 
         await mod_ping_channel.send(embed=embed)
 
@@ -37,12 +44,12 @@ class Utility(commands.Cog):
             suppress_embeds=True
         )
 
-    @commands.message_command(name="Private Thread")
+    @commands.message_command(name="Private Thread", default_member_permissions=disnake.Permissions(moderate_members=True))
     async def message_private_thread(self, inter: disnake.MessageCommandInteraction):
         """For moderators/staff to quickly create a private thread for a particular user, via that users message."""
         await self._private_thread(inter, inter.target.author)
 
-    @commands.user_command(name="Private Thread")
+    @commands.user_command(name="Private Thread", default_member_permissions=disnake.Permissions(moderate_members=True))
     async def user_private_thread(self, inter: disnake.UserCommandInteraction):
         """For moderators/staff to quickly create a private thread for a particular user, via that user."""
         await self._private_thread(inter, inter.target)
@@ -50,8 +57,8 @@ class Utility(commands.Cog):
     async def _private_thread(self, inter: disnake.ApplicationCommandInteraction, target: disnake.Member):
         """Creates a private thread in the given channel (or #moderator-support if in #moderator-alerts) and invites the user."""
 
-        if inter.channel_id == 1067223029861580831:  # moderator-alerts
-            channel = inter.guild.get_channel(568911894459711490)  # moderator-support
+        if inter.channel_id == constants.MOD_ALERT_CHANNEL_ID:  # moderator-alerts
+            channel = inter.guild.get_channel(constants.MOD_SUPPORT_CHANNEL_ID)  # moderator-support
         else:
             channel = inter.channel
 
@@ -73,10 +80,10 @@ class Utility(commands.Cog):
         """Updates the permissions in the #appeal channel to allow the muted role to send messages in threads"""
 
         # We only care about the #appeal channel
-        if before.id != 854369754236190780:
+        if before.id != constants.APPEAL_CHANNEL_ID:
             return
 
-        muted_role = before.guild.get_role(554336698381762592)
+        muted_role = before.guild.get_role(constants.MUTED_ROLE_ID)
 
         # I found not giving it a little time would not save it properly
         await asyncio.sleep(2)
