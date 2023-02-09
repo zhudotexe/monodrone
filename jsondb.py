@@ -3,7 +3,7 @@ import os
 
 
 class JSONDB:
-    def __init__(self, path='data/'):
+    def __init__(self, path="data/"):
         self.path = path
         ensure_path_exists(path)
 
@@ -18,7 +18,7 @@ class JSONDB:
 
     def jset(self, key, value):
         path = f"{self.path}{key}.json"
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(value, f)
 
 

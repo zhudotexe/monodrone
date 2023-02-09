@@ -1,13 +1,13 @@
 import os
 
-import discord
-from discord.ext import commands
-from discord.ext.commands import Bot
+import disnake
+from disnake.ext import commands
+from disnake.ext.commands import Bot
 
 from jsondb import JSONDB
 
 TOKEN = os.getenv("TOKEN")
-COGS = ('cogs.watchlist', 'cogs.points', 'cogs.autodelete', 'cogs.autopublish', 'cogs.utility')
+COGS = ("cogs.watchlist", "cogs.points", "cogs.autodelete", "cogs.autopublish", "cogs.utility", "cogs.lookingforgroup")
 
 
 class Monodrone(Bot):
@@ -16,9 +16,9 @@ class Monodrone(Bot):
         self.db = JSONDB()
 
 
-intents = discord.Intents.all()
+intents = disnake.Intents.all()
 
-bot = Monodrone('.', intents=intents)
+bot = Monodrone(command_prefix=".", intents=intents)
 
 
 # === listeners ===
@@ -43,5 +43,5 @@ async def ping(ctx):
 for cog in COGS:
     bot.load_extension(cog)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     bot.run(TOKEN)
