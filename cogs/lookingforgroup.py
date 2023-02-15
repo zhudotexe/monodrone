@@ -708,16 +708,19 @@ class LookingForGroup(commands.Cog):
 
         self.cleanup_timers.start()
 
-        # Try to get the autodelete loop timing
-        auto_delete_cog = self.bot.get_cog("AutoDelete")
-        if auto_delete_cog:
-            loop: disnake.ext.tasks.Loop = auto_delete_cog.deleter
-            self.loop_offset = loop.next_iteration
-
-        print(f"Looking for group offset set as {self.loop_offset}...")
+        self.get_loop_offset()
 
     def cog_unload(self):
         self.cleanup_timers.cancel()
+
+    def get_loop_offset(self):
+        # Try to get the autodelete loop timing
+        self.auto_delete_cog = self.bot.get_cog("AutoDelete")
+        if self.auto_delete_cog:
+            loop: disnake.ext.tasks.Loop = self.auto_delete_cog.deleter
+            self.loop_offset = loop.next_iteration
+        else:
+            self.loop_offset = datetime.now()
 
     @tasks.loop(hours=168)
     async def cleanup_timers(self):
@@ -743,6 +746,9 @@ class LookingForGroup(commands.Cog):
         self.bot.db.jset("lookingforgroup", self.lfg_timers)
 
     def base_embed(self, title: str, inter: disnake.ApplicationCommandInteraction):
+        # Get the offset for this post
+        self.get_loop_offset()
+
         embed = disnake.Embed(timestamp=self.loop_offset + timedelta(days=7))
         embed.title = title
         embed.description = inter.author.mention
