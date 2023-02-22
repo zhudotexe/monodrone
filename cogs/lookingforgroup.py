@@ -48,7 +48,10 @@ class LookingForField:
 
 
 looking_for_dm = {
-    "experience": LookingForField(value="[1] Experience", desc="Are you new, played a few years, a veteran?"),
+    "experience": LookingForField(
+        value="[1] Player Experience",
+        desc="Are you brand new, played a few years, a long time player?"
+    ),
     "time": LookingForField(
         value="[2] Location/Timezone",
         desc=(
@@ -250,8 +253,11 @@ class SubmissionView(disnake.ui.View):
                 continue
             embed.set_field_at(index=index, name=field.name, value="\n".join(value), inline=False)
 
+        embed.description = None
+
         channel = self.bot.get_channel(CHANNELS.get(self.lf_type))
         submission = await channel.send(
+            content=f"{inter.author.mention}",
             embed=embed,
             view=PostedView(self.bot, lf_type=self.lf_type, lfg_timers=self.lfg_timers),
         )
@@ -441,7 +447,7 @@ class DMSubmissionView(SubmissionView):
     )
     async def opt_in_select(self, select: disnake.ui.Select, inter: disnake.Interaction):
         def opt_in(option):
-            return "✅" if option in select.values else "❎"
+            return "✅" if option in select.values else "❌"
 
         await inter.response.defer()
         embed = (await inter.original_message()).embeds[0]
@@ -715,9 +721,9 @@ class LookingForGroup(commands.Cog):
 
     def get_loop_offset(self):
         # Try to get the autodelete loop timing
-        self.auto_delete_cog = self.bot.get_cog("AutoDelete")
-        if self.auto_delete_cog:
-            loop: disnake.ext.tasks.Loop = self.auto_delete_cog.deleter
+        auto_delete_cog = self.bot.get_cog("AutoDelete")
+        if auto_delete_cog:
+            loop: disnake.ext.tasks.Loop = auto_delete_cog.deleter
             self.loop_offset = loop.next_iteration
         else:
             self.loop_offset = datetime.now()
@@ -839,7 +845,7 @@ class LookingForGroup(commands.Cog):
 
         for field, values in looking_for_dm.items():
             if field == "opt_in":
-                desc = f"{values.desc}\n ❎ Community Games\n❎ Paid Games\n❎ Other Services"
+                desc = f"{values.desc}\n ❌ Community Games\n❌ Paid Games\n❌ Other Services"
             else:
                 desc = f"> *Not Set* - {values.desc}"
 
