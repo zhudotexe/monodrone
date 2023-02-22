@@ -12,6 +12,28 @@ import constants
 if TYPE_CHECKING:
     from bot import Monodrone
 
+
+class ModAlertModal(disnake.ui.Modal):
+    def __init__(self, custom_id):
+        components = [
+            disnake.ui.TextInput(
+                label="Additional Info [Optional]",
+                placeholder="What else should the mods know about this alert?",
+                custom_id="context",
+                style=disnake.TextInputStyle.long,
+                required=False,
+                max_length=500
+            )
+        ]
+        super().__init__(title="Alert Mods", custom_id=custom_id, components=components)
+
+    async def callback(self, inter: disnake.ModalInteraction) -> None:
+        await inter.response.defer(with_message=False)
+
+    async def on_error(self, error: Exception, inter: disnake.ModalInteraction) -> None:
+        await inter.response.send_message("Oops, something went wrong.", ephemeral=True)
+
+
 class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot: "Monodrone" = bot
@@ -28,11 +50,21 @@ class Utility(commands.Cog):
 
         message_chunks = [message.content[i:i+1000] for i in range(0, len(message.content), 1000)]
 
+        randomized_id = f"alert-{inter.id}"
+        await inter.response.send_modal(modal=ModAlertModal(custom_id=randomized_id))
+        modal = await self.bot.wait_for(
+            "modal_submit",
+            check=lambda modal_inter: modal_inter.custom_id == randomized_id and modal_inter.author == inter.author,
+        )
+        modal_context = modal.text_values['context']
+
         embed = disnake.Embed(title=f"{inter.author.name} has requested a moderator", timestamp=now)
         embed.set_author(name=inter.author.name, icon_url=inter.author.avatar.url)
         embed.description = f"Requested by {inter.author.mention} in {inter.channel.mention}\n" \
                             f"<t:{timestamp}> (<t:{timestamp}:R>)\n\n" \
                             f"[The request was for this message]({message.jump_url}) by {message.author.mention}"
+        if modal_context:
+            embed.add_field(name="Context", value=modal_context)
         for i, chunk in enumerate(message_chunks):
             embed.add_field(name="Message Contents" if i == 0 else "\u200b", value=chunk, inline=False)
 
