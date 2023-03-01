@@ -228,7 +228,6 @@ class SubmissionView(disnake.ui.View):
         label="Cancel",
         style=disnake.ButtonStyle.danger,
         row=4,
-        custom_id="persistent:cancel",
     )
     async def cancel(self, _: disnake.ui.Button, inter: disnake.Interaction):
         await inter.response.defer()
@@ -238,7 +237,6 @@ class SubmissionView(disnake.ui.View):
         label="Submit",
         style=disnake.ButtonStyle.success,
         row=4,
-        custom_id="persistent:submit",
         disabled=True,
     )
     async def submit(self, _: disnake.ui.Button, inter: disnake.Interaction):
@@ -333,13 +331,13 @@ class PostedView(disnake.ui.View):
         row=4,
         custom_id="persistent:delete",
     )
-    async def cancel(self, _: disnake.ui.Button, inter: disnake.Interaction):
+    async def delete(self, _: disnake.ui.Button, inter: disnake.Interaction):
         await inter.response.defer()
 
         message = await inter.original_message()
         embed = message.embeds[0]
         timestamp = int(embed.timestamp.timestamp())
-        original_author = await inter.guild.fetch_member(int(embed.description.strip("<@!>")))
+        original_author = await inter.guild.fetch_member(int(embed.footer.text[9:-13]))
 
         # if not the original author of the submission, or staff, ignore
         if not (inter.author == original_author or set(r.id for r in inter.author.roles).intersection(DELETE_ROLES)):
@@ -704,13 +702,7 @@ class LookingForGroup(commands.Cog):
         self.lfg_timers = bot.db.jget("lookingforgroup", {})
 
     def cog_load(self):
-        self.bot.add_view(DMSubmissionView(bot=self.bot))
-        self.bot.add_view(PlayersSubmissionView(bot=self.bot))
-        self.bot.add_view(CommunitySubmissionView(bot=self.bot))
-        self.bot.add_view(PaidSubmissionView(bot=self.bot))
-
         self.bot.add_view(PostedView(bot=self.bot))
-        self.bot.add_view(ModResetView(bot=self.bot))
 
         self.cleanup_timers.start()
 
