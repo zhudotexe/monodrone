@@ -79,6 +79,7 @@ class Utility(commands.Cog):
     @commands.message_command(name="Private Thread", default_member_permissions=disnake.Permissions(moderate_members=True))
     async def message_private_thread(self, inter: disnake.MessageCommandInteraction):
         """For moderators/staff to quickly create a private thread for a particular user, via that users message."""
+        await inter.target.add_reaction("<:dndAmp:1050251578856190033>")
         await self._private_thread(inter, inter.target.author)
 
     @commands.user_command(name="Private Thread", default_member_permissions=disnake.Permissions(moderate_members=True))
