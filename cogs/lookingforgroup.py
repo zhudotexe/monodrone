@@ -257,7 +257,7 @@ class SubmissionView(disnake.ui.View):
         submission = await channel.send(
             content=f"{inter.author.mention}",
             embed=embed,
-            view=PostedView(self.bot, lf_type=self.lf_type, lfg_timers=self.lfg_timers),
+            view=PostedView(self.bot, lfg_timers=self.lfg_timers),
         )
 
         await submission.create_thread(
@@ -307,7 +307,7 @@ class ModResetView(disnake.ui.View):
 
         # remove timer
         if str(self.target.id) in self.lfg_timers:
-            self.lfg_timers[str(target.id)].pop(self.lf_type, None)
+            self.lfg_timers[str(self.target.id)].pop(self.lf_type, None)
 
         self.bot.db.jset("lookingforgroup", self.lfg_timers)
         await inter.edit_original_message(view=None, content=f"{self.lf_type} timer reset for {self.target.mention}")
@@ -317,10 +317,9 @@ class ModResetView(disnake.ui.View):
 
 
 class PostedView(disnake.ui.View):
-    def __init__(self, bot: "Monodrone" = None, lf_type: str = None, lfg_timers: dict = None):
+    def __init__(self, bot: "Monodrone" = None, lfg_timers: dict = None):
         super().__init__(timeout=None)
         self.bot = bot
-        self.lf_type = lf_type
         self.lfg_timers = lfg_timers
         self.last_pressed = 0
         if self.lfg_timers is None:
@@ -339,6 +338,17 @@ class PostedView(disnake.ui.View):
         embed = message.embeds[0]
         timestamp = int(embed.timestamp.timestamp())
         original_author = await inter.guild.fetch_member(int(embed.footer.text[9:-13]))
+
+        lf_type = None
+        match embed.title:
+            case "Player Looking for Dungeon Master":
+                lf_type = "Dungeon Master"
+            case "Dungeon Master Looking for Players":
+                lf_type = "Players"
+            case "Looking for Community":
+                lf_type = "Community"
+            case "Paid Dungeon Master Looking for Players":
+                lf_type = "Paid"
 
         # if not the original author of the submission, or staff, ignore
         if not (inter.author == original_author or set(r.id for r in inter.author.roles).intersection(DELETE_ROLES)):
@@ -359,7 +369,7 @@ class PostedView(disnake.ui.View):
         else:
             view = ModResetView(
                 bot=self.bot,
-                lf_type=self.lf_type,
+                lf_type=lf_type,
                 lfg_timers=self.lfg_timers,
                 target=original_author,
             )
