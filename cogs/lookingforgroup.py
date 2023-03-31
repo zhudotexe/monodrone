@@ -257,7 +257,7 @@ class SubmissionView(disnake.ui.View):
         submission = await channel.send(
             content=f"{inter.author.mention}",
             embed=embed,
-            view=PostedView(self.bot, lf_type=self.lf_type, lfg_timers=self.lfg_timers),
+            view=PostedView(self.bot, lfg_timers=self.lfg_timers),
         )
 
         await submission.create_thread(
@@ -307,7 +307,7 @@ class ModResetView(disnake.ui.View):
 
         # remove timer
         if str(self.target.id) in self.lfg_timers:
-            self.lfg_timers[str(inter.author.id)].pop(self.lf_type, None)
+            self.lfg_timers[str(self.target.id)].pop(self.lf_type, None)
 
         self.bot.db.jset("lookingforgroup", self.lfg_timers)
         await inter.edit_original_message(view=None, content=f"{self.lf_type} timer reset for {self.target.mention}")
@@ -317,11 +317,11 @@ class ModResetView(disnake.ui.View):
 
 
 class PostedView(disnake.ui.View):
-    def __init__(self, bot: "Monodrone" = None, lf_type: str = None, lfg_timers: dict = None):
+    def __init__(self, bot: "Monodrone" = None, lfg_timers: dict = None):
         super().__init__(timeout=None)
         self.bot = bot
-        self.lf_type = lf_type
         self.lfg_timers = lfg_timers
+        self.last_pressed = 0
         if self.lfg_timers is None:
             self.lfg_timers = self.bot.db.jget("lookingforgroup", {})
 
@@ -339,8 +339,28 @@ class PostedView(disnake.ui.View):
         timestamp = int(embed.timestamp.timestamp())
         original_author = await inter.guild.fetch_member(int(embed.footer.text[9:-13]))
 
+        lf_type = None
+        match embed.title:
+            case "Player Looking for Dungeon Master":
+                lf_type = "Dungeon Master"
+            case "Dungeon Master Looking for Players":
+                lf_type = "Players"
+            case "Looking for Community":
+                lf_type = "Community"
+            case "Paid Dungeon Master Looking for Players":
+                lf_type = "Paid"
+
         # if not the original author of the submission, or staff, ignore
         if not (inter.author == original_author or set(r.id for r in inter.author.roles).intersection(DELETE_ROLES)):
+            return
+
+        if not self.last_pressed or (datetime.now().timestamp() - self.last_pressed) > 10:
+            self.last_pressed = datetime.now().timestamp()
+            await inter.send(f"Remember you won’t be able to submit another {embed.title} until <t:{timestamp}> "
+                             f"(<t:{timestamp}:R>), even after deleting. If you have errors in your post, please "
+                             f"utilize the thread that was created to correct or clarify.\n\nPress delete again within "
+                             f"the next 10 second to confirm.",
+                             ephemeral=True)
             return
 
         if inter.author == original_author:
@@ -349,13 +369,17 @@ class PostedView(disnake.ui.View):
         else:
             view = ModResetView(
                 bot=self.bot,
-                lf_type=self.lf_type,
+                lf_type=lf_type,
                 lfg_timers=self.lfg_timers,
                 target=original_author,
             )
             pronoun = "They"
 
+        log_channel = self.bot.get_channel(constants.OUTPUT_CHANNEL_ID)
+        await log_channel.send(f"{inter.author.mention} deleted {original_author.mention}'s {embed.title} submission:",
+                               embed=embed)
         await inter.delete_original_message()
+
         await inter.send(
             f"Submission removed. {pronoun} can post another on: <t:{timestamp}> (<t:{timestamp}:R>)",
             ephemeral=True,
@@ -399,6 +423,8 @@ class DMSubmissionView(SubmissionView):
         embed = (await inter.original_message()).embeds[0]
         values = modal_inter.text_values
         for index, (name, value) in enumerate(values.items()):
+            if not value:
+                continue
             embed.set_field_at(
                 index=index,
                 name=looking_for_dm[name].value,
@@ -497,6 +523,8 @@ class PlayersSubmissionView(SubmissionView):
         embed = (await inter.original_message()).embeds[0]
         values = modal_inter.text_values
         for index, (name, value) in enumerate(values.items()):
+            if not value:
+                continue
             embed.set_field_at(
                 index=index,
                 name=looking_for_players[name].value,
@@ -571,6 +599,8 @@ class CommunitySubmissionView(SubmissionView):
         embed = (await inter.original_message()).embeds[0]
         values = modal_inter.text_values
         for index, (name, value) in enumerate(values.items()):
+            if not value:
+                continue
             embed.set_field_at(
                 index=index,
                 name=looking_for_community[name].value,
@@ -645,6 +675,8 @@ class PaidSubmissionView(SubmissionView):
         embed = (await inter.original_message()).embeds[0]
         values = modal_inter.text_values
         for index, (name, value) in enumerate(values.items()):
+            if not value:
+                continue
             embed.set_field_at(
                 index=index,
                 name=looking_for_paid[name].value,
@@ -702,7 +734,7 @@ class LookingForGroup(commands.Cog):
         self.lfg_timers = bot.db.jget("lookingforgroup", {})
 
     def cog_load(self):
-        self.bot.add_view(PostedView(bot=self.bot))
+        self.bot.add_view(PostedView(bot=self.bot, lfg_timers=self.lfg_timers))
 
         self.cleanup_timers.start()
 
@@ -749,7 +781,10 @@ class LookingForGroup(commands.Cog):
 
         embed = disnake.Embed(timestamp=self.loop_offset + timedelta(days=7))
         embed.title = title
-        embed.description = inter.author.mention
+        embed.description = f"{inter.author.mention}\n\nAfter submitting, you won’t be able to " \
+                            f"submit another {title} post until <t:{int(embed.timestamp.timestamp())}> " \
+                            f"(<t:{int(embed.timestamp.timestamp())}:R>), even if you delete your submission. " \
+                            f"A thread will be created for your post which can be used for any corrections or updates."
         embed.set_footer(text=f"User ID: {inter.author.id} - Expires on")
 
         return embed
@@ -809,7 +844,7 @@ class LookingForGroup(commands.Cog):
         reset = None
 
         if str(target.id) in self.lfg_timers:
-            reset = self.lfg_timers[str(inter.author.id)].pop(lf_type, None)
+            reset = self.lfg_timers[str(target.id)].pop(lf_type, None)
             self.bot.db.jset("lookingforgroup", self.lfg_timers)
 
         if not reset:
