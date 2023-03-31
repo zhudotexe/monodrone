@@ -734,7 +734,7 @@ class LookingForGroup(commands.Cog):
         self.lfg_timers = bot.db.jget("lookingforgroup", {})
 
     def cog_load(self):
-        self.bot.add_view(PostedView(bot=self.bot))
+        self.bot.add_view(PostedView(bot=self.bot, lfg_timers=self.lfg_timers))
 
         self.cleanup_timers.start()
 
