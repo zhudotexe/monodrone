@@ -108,20 +108,6 @@ class Utility(commands.Cog):
 
         await inter.send(f"The private thread {thread.mention} has been created.", ephemeral=True)
 
-    @commands.Cog.listener()
-    async def on_guild_channel_update(self, before: disnake.abc.GuildChannel, after: disnake.abc.GuildChannel):
-        """Updates the permissions in the #appeal channel to allow the muted role to send messages in threads"""
-
-        # We only care about the #appeal channel
-        if before.id != constants.APPEAL_CHANNEL_ID:
-            return
-
-        muted_role = before.guild.get_role(constants.MUTED_ROLE_ID)
-
-        # I found not giving it a little time would not save it properly
-        await asyncio.sleep(2)
-        await after.set_permissions(muted_role, send_messages_in_threads=True)
-
     @commands.command()
     @commands.has_role(constants.MOD_ROLE_ID)
     async def snowtime(self, ctx, *ids):
