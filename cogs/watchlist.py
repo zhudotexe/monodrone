@@ -23,7 +23,8 @@ class Watchlist(commands.Cog):
             description=f"{member.mention} (`{member!s}`, `{member.id}`), who is on the list, just joined.",
             color=0x1B998B,
         )
-        embed.set_thumbnail(url=str(member.avatar_url))
+        embed.set_thumbnail(url=str(member.display_avatar.url))
+        embed.set_footer(text=f"ID: {member.id}")
         await destination.send(embed=embed)
 
     @commands.Cog.listener()
@@ -38,7 +39,8 @@ class Watchlist(commands.Cog):
             description=f"{member.mention} (`{member!s}`, `{member.id}`), who is on the list, just left.",
             color=0xF46036,
         )
-        embed.set_thumbnail(url=str(member.avatar_url))
+        embed.set_thumbnail(url=str(member.display_avatar.url))
+        embed.set_footer(text=f"ID: {member.id}")
         await destination.send(embed=embed)
 
     @commands.Cog.listener()
@@ -55,7 +57,8 @@ class Watchlist(commands.Cog):
             description=f"{before.display_name} is now known as {after.display_name} ({after.mention}).",
             color=0xC5D86D,
         )
-        embed.set_thumbnail(url=str(after.avatar_url))
+        embed.set_thumbnail(url=str(after.display_avatar.url))
+        embed.set_footer(text=f"ID: {after.id}")
         await destination.send(embed=embed)
 
     @commands.Cog.listener()
@@ -70,7 +73,8 @@ class Watchlist(commands.Cog):
             description=f"{before}'s username is now {after} ({after.mention}).",
             color=0xC5D86D,
         )
-        embed.set_thumbnail(url=str(after.avatar_url))
+        embed.set_thumbnail(url=str(after.display_avatar.url))
+        embed.set_footer(text=f"ID: {after.id}")
         await destination.send(embed=embed)
 
     @commands.Cog.listener()
@@ -97,7 +101,8 @@ class Watchlist(commands.Cog):
             ),
             color=0xF46036
         )
-        embed.set_thumbnail(url=str(user.avatar_url))
+        embed.set_thumbnail(url=str(user.display_avatar.url))
+        embed.set_footer(text=f"ID: {user.id}")
         await destination.send(embed=embed)
 
     # ==== commands ====
@@ -190,7 +195,7 @@ class Watchlist(commands.Cog):
         if constants.MOD_ROLE_ID not in set(r.id for r in ctx.author.roles):
             return
 
-        banned_users = await ctx.guild.bans()
+        banned_users = await ctx.guild.bans().flatten()
         ban_id_map = {be.user.id: be for be in banned_users}
 
         # clean
